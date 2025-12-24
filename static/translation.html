@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语义翻译器</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="page-ll">
+    <div class="container">
+        <header>
+            <h1>语义翻译器</h1>
+        </header>
+
+        <div class="main-content">
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <h3>源代码编辑器</h3>
+                    <div class="controls">
+                        <a href="/home.html" class="btn-secondary link-button">返回首页</a>
+                        <button id="analyze-btn" class="btn-primary">执行翻译</button>
+                        <button id="clear-btn" class="btn-secondary">清空</button>
+                    </div>
+                </div>
+                <textarea id="ll-editor" placeholder="请输入C语言代码...">
+int a = 1 ; int b = 2 ; real c = 3.0 ;
+
+{
+
+a = a + 1 ;
+
+b = b * a ;
+
+if ( a < b ) then c = c / 2 ; else c = c / 4 ;
+
+}
+                </textarea>
+            </div>
+
+            <div class="panel results-panel">
+                <div class="panel-header">
+                    <h3>分析结果</h3>
+                    <div id="loading" class="loading hidden">分析中...</div>
+                </div>
+                <div id="ll-errors" class="no-data hidden"></div>
+                <pre id="ll-tree"></pre>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy;10235101565何冬语</p>
+        </footer>
+    </div>
+
+    <script>
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const llEditor = document.getElementById('ll-editor');
+        const llTree = document.getElementById('ll-tree');
+        const llErrors = document.getElementById('ll-errors');
+        const loading = document.getElementById('loading');
+
+        analyzeBtn.addEventListener('click', async () => {
+            const code = llEditor.value;
+            if (!code.trim()) { alert('请输入C语言代码'); return; }
+            try {
+                loading.textContent = '执行中...';
+                loading.classList.remove('hidden');
+                analyzeBtn.disabled = true;
+                const resp = await fetch('/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                llTree.textContent = data.output || '';
+                loading.textContent = '完成';
+                setTimeout(() => loading.classList.add('hidden'), 300);
+            } catch (e) {
+                alert('执行失败: ' + e.message);
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            llEditor.value = '';
+            llTree.textContent = '';
+            llErrors.textContent = '';
+            llErrors.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>词法分析器</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="page-index">
+    <div class="container">
+        <header>
+            <h1>词法分析器</h1>
+        </header>
+        
+        <div class="main-content">
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <h3>源代码编辑器</h3>
+                    <div class="controls">
+                        <a href="/home.html" class="btn-secondary link-button">返回首页</a>
+                        <button id="analyze-btn" class="btn-primary">分析代码</button>
+                        <button id="clear-btn" class="btn-secondary">清空</button>
+                    </div>
+                </div>
+                <textarea id="code-editor" placeholder="请输入C语言代码...">#include &lt;stdio.h&gt;
+
+int main() {
+    // 这是一个示例程序
+    int number = 42;
+    float pi = 3.14;
+    char message[] = "Hello, World!";
+    
+    if (number > 0) {
+        printf("Positive number: %d", number);
+    } else {
+        printf("Negative number");
+    }
+    
+    return 0;
+}</textarea>
+            </div>
+            
+            <div class="results-panel">
+                <div class="panel-header">
+                    <h3>分析结果</h3>
+                    <div id="loading" class="loading hidden">分析中...</div>
+                </div>
+                
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-tokens">0</div>
+                        <div class="stat-label">总Token数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="keyword-count">0</div>
+                        <div class="stat-label">关键字</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="identifier-count">0</div>
+                        <div class="stat-label">标识符</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="constant-count">0</div>
+                        <div class="stat-label">常量</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="operator-count">0</div>
+                        <div class="stat-label">运算符</div>
+                    </div>
+                </div>
+                
+                <div class="tokens-container">
+                    <table id="tokens-table">
+                        <thead>
+                            <tr>
+                                <th width="60">序号</th>
+                                <th width="150">词素</th>
+                                <th width="120">类型</th>
+                                <th width="80">类型ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tokens-body">
+                            <tr>
+                                <td colspan="4" class="no-data">等待分析代码...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>&copy;10235101565何冬语</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM元素
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const codeEditor = document.getElementById('code-editor');
+        const tokensBody = document.getElementById('tokens-body');
+        const loading = document.getElementById('loading');
+
+        // 统计元素
+        const totalTokens = document.getElementById('total-tokens');
+        const keywordCount = document.getElementById('keyword-count');
+        const identifierCount = document.getElementById('identifier-count');
+        const constantCount = document.getElementById('constant-count');
+        const operatorCount = document.getElementById('operator-count');
+
+        // 分析代码事件
+        // 修复分析按钮点击事件
+        analyzeBtn.addEventListener('click', async () => {
+            let code = codeEditor.value;
+            
+            if (!code.trim()) {
+                alert('请输入C语言代码');
+                return;
+            }
+            
+            try {
+                loading.classList.remove('hidden');
+                analyzeBtn.disabled = true;
+                
+                // 调试：显示原始代码
+                console.log("原始代码:", code);
+                console.log("代码长度:", code.length);
+                
+                // 调试：显示代码中的特殊字符
+                let debugOutput = "代码调试: ";
+                for (let i = 0; i < Math.min(50, code.length); i++) {
+                    let char = code[i];
+                    if (char === '\n') debugOutput += '\\n';
+                    else if (char === '\r') debugOutput += '\\r';
+                    else if (char === '\t') debugOutput += '\\t';
+                    else if (char === '"') debugOutput += '[QUOTE]';
+                    else debugOutput += char;
+                }
+                console.log(debugOutput);
+                
+                // 直接发送代码，不要进行任何转义
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                
+            } catch (error) {
+                console.error('分析错误:', error);
+                alert('分析失败: ' + error.message);
+            } finally {
+                loading.classList.add('hidden');
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        // 清空编辑器
+        clearBtn.addEventListener('click', () => {
+            codeEditor.value = '';
+            tokensBody.innerHTML = '<tr><td colspan="4" class="no-data">等待分析代码...</td></tr>';
+            resetStats();
+        });
+
+        // 显示分析结果
+        function displayResults(data) {
+            // 更新统计信息
+            totalTokens.textContent = data.stats.total;
+            keywordCount.textContent = data.stats.keywords;
+            identifierCount.textContent = data.stats.identifiers;
+            constantCount.textContent = data.stats.constants;
+            operatorCount.textContent = data.stats.operators;
+            
+            // 更新Token表格
+            tokensBody.innerHTML = '';
+            
+            if (data.tokens.length === 0) {
+                tokensBody.innerHTML = '<tr><td colspan="4" class="no-data">未识别到任何Token</td></tr>';
+                return;
+            }
+            
+            data.tokens.forEach(token => {
+                const row = document.createElement('tr');
+                
+                // 根据类型添加CSS类
+                let typeClass = '';
+                switch(token.typeName) {
+                    case 'Keyword':
+                        typeClass = 'keyword-token';
+                        break;
+                    case 'Identifier':
+                        typeClass = 'identifier-token';
+                        break;
+                    case 'Constant':
+                        typeClass = 'constant-token';
+                        break;
+                    case 'Operator':
+                        typeClass = 'operator-token';
+                        break;
+                    case 'Comment':
+                        typeClass = 'comment-token';
+                        break;
+                }
+                
+                row.innerHTML = `
+                    <td>${token.id}</td>
+                    <td><code>${escapeHtml(token.lexeme)}</code></td>
+                    <td><span class="token-type ${typeClass}">${token.typeName}</span></td>
+                    <td>${token.typeId}</td>
+                `;
+                
+                tokensBody.appendChild(row);
+            });
+        }
+
+        // 重置统计信息
+        function resetStats() {
+            totalTokens.textContent = '0';
+            keywordCount.textContent = '0';
+            identifierCount.textContent = '0';
+            constantCount.textContent = '0';
+            operatorCount.textContent = '0';
+        }
+
+        // HTML转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
