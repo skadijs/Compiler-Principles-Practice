@@ -1,6 +1,11 @@
-.vscode/
+# Executables
 *.exe
 *.o
 *.obj
-*.log
+
+# VS Code
+.vscode/
+
+# OS specific
 .DS_Store
+Thumbs.db
