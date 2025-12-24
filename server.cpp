@@ -521,6 +521,13 @@ struct LLParseResult {
     bool syntaxError = false;
 };
 
+struct ASTNode {
+    string name;
+    vector<ASTNode*> children;
+    ASTNode(string n) : name(n) {}
+    ~ASTNode() { for (auto c : children) delete c; }
+};
+
 class LLParser {
     vector<LLToken> tokens;
     size_t p = 0;
@@ -530,8 +537,11 @@ public:
     bool hasError = false;
     int lastConsumedLine = 0;
     string tree;
+    ASTNode* rootNode = nullptr;
 
     LLParser(const vector<LLToken>& t) : tokens(t) {}
+    
+    ~LLParser() { if (rootNode) delete rootNode; }
 
     LLToken peek() const { return p < tokens.size() ? tokens[p] : LLToken("$", 0); }
     void consume() { if (p < tokens.size()) { lastConsumedLine = tokens[p].line; ++p; } }
@@ -542,10 +552,20 @@ public:
         tree += "\n";
     }
 
-    bool parse(const string& symbol, int depth, bool output) {
-        if (symbol == "E") { if (output) append(depth, "E"); return true; }
+    bool parse(const string& symbol, int depth, bool output, ASTNode* parent = nullptr) {
+        ASTNode* currentNode = nullptr;
+        if (output) {
+            currentNode = new ASTNode(symbol);
+            if (parent) parent->children.push_back(currentNode);
+            else {
+                if (rootNode) delete rootNode;
+                rootNode = currentNode;
+            }
+            append(depth, symbol);
+        }
+
+        if (symbol == "E") { return true; }
         if (LLTerminals.count(symbol)) {
-            if (output) append(depth, symbol);
             LLToken cur = peek();
             if (cur.value == symbol) { consume(); return true; }
             if (symbol == ";") {
@@ -558,7 +578,6 @@ public:
             }
             return false;
         }
-        if (output) append(depth, symbol);
         string cur = peek().value;
         auto key = make_pair(symbol, cur);
         if (LLParseTable.count(key) == 0) {
@@ -567,7 +586,7 @@ public:
                     cur == "<" || cur == ">" || cur == "<=" || cur == ">=" || cur == "==" || cur == "}")) ||
                 (symbol == "multexprprime" && (cur == "+" || cur == "-" || cur == ")" ||
                     cur == ";" || cur == "$" || cur == "<" || cur == ">" || cur == "<=" || cur == ">=" || cur == "==" || cur == "}"))) {
-                return parse("E", depth + 1, output);
+                return parse("E", depth + 1, output, currentNode);
             }
             if (semicolonMissing) return false;
             hasError = true;
@@ -575,12 +594,33 @@ public:
         }
         const vector<string>& prod = LLParseTable[key];
         for (const string& s : prod) {
-            if (!parse(s, depth + 1, output)) return false;
+            if (!parse(s, depth + 1, output, currentNode)) return false;
         }
         return true;
     }
 
-    void reset() { p = 0; semicolonMissing = false; missingLine = 0; hasError = false; lastConsumedLine = 0; tree.clear(); }
+    void reset() { p = 0; semicolonMissing = false; missingLine = 0; hasError = false; lastConsumedLine = 0; tree.clear(); if (rootNode) { delete rootNode; rootNode = nullptr; } }
+    
+    string getJsonTree() {
+        if (!rootNode) return "{}";
+        return nodeToJson(rootNode);
+    }
+
+private:
+    string nodeToJson(ASTNode* node) {
+        stringstream ss;
+        ss << "{\"name\": \"" << node->name << "\"";
+        if (!node->children.empty()) {
+            ss << ", \"children\": [";
+            for (size_t i = 0; i < node->children.size(); ++i) {
+                if (i > 0) ss << ", ";
+                ss << nodeToJson(node->children[i]);
+            }
+            ss << "]";
+        }
+        ss << "}";
+        return ss.str();
+    }
 };
 
 
@@ -830,6 +870,8 @@ string llParseToJSON(const string& code) {
     parser.reset();
     parser.parse("program", 0, true);
     string t = parser.tree;
+    string treeJson = parser.getJsonTree();
+
     stringstream json;
     // Build JSON safely (escape tree text)
     string escaped;
@@ -846,6 +888,7 @@ string llParseToJSON(const string& code) {
         }
     }
     json << "{\"tree\":\"" << escaped << "\",";
+    json << "\"treeJson\":" << treeJson << ",";
     json << "\"missingSemicolon\":" << (miss ? "true" : "false") << ",";
     json << "\"missingLine\":" << line << ",";
     json << "\"syntaxError\":" << (parser.hasError ? "true" : "false") << "}";

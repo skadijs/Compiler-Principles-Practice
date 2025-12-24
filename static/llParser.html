@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LL(1) 语法分析器</title>
     <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body class="page-ll">
     <div class="container">
@@ -44,6 +45,7 @@ ID = NUM
                 </div>
                 <div id="ll-errors" class="no-data hidden"></div>
                 <pre id="ll-tree"></pre>
+                <div id="ll-chart" style="width: 100%; height: 600px; margin-top: 20px;"></div>
             </div>
         </div>
 
@@ -59,6 +61,7 @@ ID = NUM
         const llTree = document.getElementById('ll-tree');
         const llErrors = document.getElementById('ll-errors');
         const loading = document.getElementById('loading');
+        let myChart = null;
 
         analyzeBtn.addEventListener('click', async () => {
             const code = llEditor.value;
@@ -75,6 +78,52 @@ ID = NUM
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
                 const data = await resp.json();
                 llTree.textContent = data.tree || '';
+                
+                if (data.treeJson) {
+                    if (myChart) {
+                        myChart.dispose();
+                    }
+                    myChart = echarts.init(document.getElementById('ll-chart'));
+                    
+                    myChart.setOption({
+                        tooltip: {
+                            trigger: 'item',
+                            triggerOn: 'mousemove'
+                        },
+                        series: [
+                            {
+                                type: 'tree',
+                                data: [data.treeJson],
+                                top: '1%',
+                                left: '7%',
+                                bottom: '1%',
+                                right: '20%',
+                                symbolSize: 7,
+                                label: {
+                                    position: 'left',
+                                    verticalAlign: 'middle',
+                                    align: 'right',
+                                    fontSize: 9
+                                },
+                                leaves: {
+                                    label: {
+                                        position: 'right',
+                                        verticalAlign: 'middle',
+                                        align: 'left'
+                                    }
+                                },
+                                expandAndCollapse: true,
+                                animationDuration: 550,
+                                animationDurationUpdate: 750
+                            }
+                        ]
+                    });
+                    
+                    window.addEventListener('resize', () => {
+                        if (myChart) myChart.resize();
+                    });
+                }
+
                 const errs = [];
                 if (data.syntaxError) errs.push('存在语法错误');
                 if (data.missingSemicolon) errs.push('缺少分号，行号：' + data.missingLine);
@@ -99,6 +148,10 @@ ID = NUM
             llTree.textContent = '';
             llErrors.textContent = '';
             llErrors.classList.add('hidden');
+            if (myChart) {
+                myChart.dispose();
+                myChart = null;
+            }
         });
     </script>
 </body>
