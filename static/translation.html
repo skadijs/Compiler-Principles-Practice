@@ -67,7 +67,7 @@ if ( a < b ) then c = c / 2 ; else c = c / 4 ;
                 loading.textContent = '执行中...';
                 loading.classList.remove('hidden');
                 analyzeBtn.disabled = true;
-                const resp = await fetch('/translate', {
+                const resp = await fetch('http://localhost:8080/translate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code })

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -33,7 +34,82 @@ struct Identifier {
     Identifier(string n = "", bool real = false, double v = 0) : name(n), isReal(real), value(v) {}
 };
 
-map<string, Identifier> IDMap;
+class SymbolTable {
+public:
+    struct Node {
+        string key;
+        Identifier value;
+        Node* next;
+        Node(string k, Identifier v) : key(k), value(v), next(nullptr) {}
+    };
+
+    static const int TABLE_SIZE = 1009; // Prime number for better distribution
+    Node* buckets[TABLE_SIZE];
+
+    SymbolTable() {
+        for (int i = 0; i < TABLE_SIZE; ++i) buckets[i] = nullptr;
+    }
+
+    // BKDR Hash Function
+    unsigned int hash(const string& str) {
+        unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
+        unsigned int hash = 0;
+        for (char c : str) {
+            hash = hash * seed + c;
+        }
+        return (hash & 0x7FFFFFFF) % TABLE_SIZE;
+    }
+
+    Identifier& operator[](const string& key) {
+        unsigned int h = hash(key);
+        Node* p = buckets[h];
+        while (p) {
+            if (p->key == key) return p->value;
+            p = p->next;
+        }
+        // Insert new
+        Node* newNode = new Node(key, Identifier(key));
+        newNode->next = buckets[h];
+        buckets[h] = newNode;
+        return newNode->value;
+    }
+
+    bool contains(const string& key) {
+        unsigned int h = hash(key);
+        Node* p = buckets[h];
+        while (p) {
+            if (p->key == key) return true;
+            p = p->next;
+        }
+        return false;
+    }
+
+    void clear() {
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            Node* p = buckets[i];
+            while (p) {
+                Node* temp = p;
+                p = p->next;
+                delete temp;
+            }
+            buckets[i] = nullptr;
+        }
+    }
+
+    vector<string> getKeys() {
+        vector<string> keys;
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            Node* p = buckets[i];
+            while (p) {
+                keys.push_back(p->key);
+                p = p->next;
+            }
+        }
+        return keys;
+    }
+};
+
+SymbolTable IDMap;
 
 void conversionError(int lineNum) {
     printf("error message:line %d,realnum can not be translated into int type\n", lineNum);
@@ -92,7 +168,7 @@ class Translator {
     }
     
     Identifier* getOrCreateId(string name, bool isReal = false) {
-        if (IDMap.find(name) == IDMap.end()) {
+        if (!IDMap.contains(name)) {
             IDMap[name] = Identifier(name, isReal, 0);
         }
         return &IDMap[name];
@@ -199,16 +275,20 @@ class Translator {
     }
     
     void printResult() {
-    for (auto& p : IDMap) {
-        if (p.first != "temp") {
-            if (p.second.isReal) {
-                printf("%s: %g\n", p.first.c_str(), p.second.value);
-            } else {
-                printf("%s: %d\n", p.first.c_str(), (int)p.second.value);
+        vector<string> keys = IDMap.getKeys();
+        sort(keys.begin(), keys.end());
+
+        for (const auto& key : keys) {
+            auto& val = IDMap[key];
+            if (key != "temp") {
+                if (val.isReal) {
+                    printf("%s: %g\n", key.c_str(), val.value);
+                } else {
+                    printf("%s: %d\n", key.c_str(), (int)val.value);
+                }
             }
         }
     }
-}
 
 public:
     Translator(string& prog) {

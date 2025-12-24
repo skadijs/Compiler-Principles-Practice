@@ -140,7 +140,7 @@ int main() {
                 console.log(debugOutput);
                 
                 // 直接发送代码，不要进行任何转义
-                const response = await fetch('/analyze', {
+                const response = await fetch('http://localhost:8080/analyze', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <string>
 #include <fstream>
@@ -26,11 +27,12 @@
 #endif
 
 #include "LR parser.h"
+#include "TableGenerator.h"
 
 using namespace std;
 
 // 枚举token存在的类型
-map<string, short> typeNameMap = {
+unordered_map<string, short> typeNameMap = {
     {"auto",1}, {"break",2}, {"case",3}, {"char",4}, {"const",5},
     {"continue",6}, {"default",7}, {"do",8}, {"double",9}, {"else",10},
     {"enum",11}, {"extern",12}, {"float",13}, {"for",14}, {"goto",15},
@@ -433,59 +435,7 @@ static map<string, vector<vector<string>>> LLGrammar = {
     {"simpleexpr", {{"ID"}, {"NUM"}, {"(", "arithexpr", ")"}}}
 };
 
-static map<pair<string, string>, vector<string>> LLParseTable = {
-    { make_pair(string("program"), string("{")), vector<string>{"compoundstmt"} },
-    { make_pair(string("stmt"), string("{")), vector<string>{"compoundstmt"} },
-    { make_pair(string("stmt"), string("if")), vector<string>{"ifstmt"} },
-    { make_pair(string("stmt"), string("while")), vector<string>{"whilestmt"} },
-    { make_pair(string("stmt"), string("ID")), vector<string>{"assgstmt"} },
-    { make_pair(string("compoundstmt"), string("{")), vector<string>{"{", "stmts", "}"} },
-    { make_pair(string("stmts"), string("{")), vector<string>{"stmt", "stmts"} },
-    { make_pair(string("stmts"), string("if")), vector<string>{"stmt", "stmts"} },
-    { make_pair(string("stmts"), string("while")), vector<string>{"stmt", "stmts"} },
-    { make_pair(string("stmts"), string("ID")), vector<string>{"stmt", "stmts"} },
-    { make_pair(string("stmts"), string("}")), vector<string>{"E"} },
-    { make_pair(string("ifstmt"), string("if")), vector<string>{"if", "(", "boolexpr", ")", "then", "stmt", "else", "stmt"} },
-    { make_pair(string("whilestmt"), string("while")), vector<string>{"while", "(", "boolexpr", ")", "stmt"} },
-    { make_pair(string("assgstmt"), string("ID")), vector<string>{"ID", "=", "arithexpr", ";"} },
-    { make_pair(string("boolexpr"), string("(")), vector<string>{"arithexpr", "boolop", "arithexpr"} },
-    { make_pair(string("boolexpr"), string("ID")), vector<string>{"arithexpr", "boolop", "arithexpr"} },
-    { make_pair(string("boolexpr"), string("NUM")), vector<string>{"arithexpr", "boolop", "arithexpr"} },
-    { make_pair(string("boolop"), string("<")), vector<string>{"<"} },
-    { make_pair(string("boolop"), string(">")), vector<string>{">"} },
-    { make_pair(string("boolop"), string("<=")), vector<string>{"<="} },
-    { make_pair(string("boolop"), string(">=")), vector<string>{">="} },
-    { make_pair(string("boolop"), string("==")), vector<string>{"=="} },
-    { make_pair(string("arithexpr"), string("(")), vector<string>{"multexpr", "arithexprprime"} },
-    { make_pair(string("arithexpr"), string("ID")), vector<string>{"multexpr", "arithexprprime"} },
-    { make_pair(string("arithexpr"), string("NUM")), vector<string>{"multexpr", "arithexprprime"} },
-    { make_pair(string("arithexprprime"), string(")")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string(";")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string("<")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string(">")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string("<=")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string(">=")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string("==")), vector<string>{"E"} },
-    { make_pair(string("arithexprprime"), string("+")), vector<string>{"+", "multexpr", "arithexprprime"} },
-    { make_pair(string("arithexprprime"), string("-")), vector<string>{"-", "multexpr", "arithexprprime"} },
-    { make_pair(string("multexpr"), string("(")), vector<string>{"simpleexpr", "multexprprime"} },
-    { make_pair(string("multexpr"), string("ID")), vector<string>{"simpleexpr", "multexprprime"} },
-    { make_pair(string("multexpr"), string("NUM")), vector<string>{"simpleexpr", "multexprprime"} },
-    { make_pair(string("multexprprime"), string(")")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string(";")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string("<")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string(">")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string("<=")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string(">=")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string("==")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string("+")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string("-")), vector<string>{"E"} },
-    { make_pair(string("multexprprime"), string("*")), vector<string>{"*", "simpleexpr", "multexprprime"} },
-    { make_pair(string("multexprprime"), string("/")), vector<string>{"/", "simpleexpr", "multexprprime"} },
-    { make_pair(string("simpleexpr"), string("(")), vector<string>{"(", "arithexpr", ")"} },
-    { make_pair(string("simpleexpr"), string("ID")), vector<string>{"ID"} },
-    { make_pair(string("simpleexpr"), string("NUM")), vector<string>{"NUM"} }
-};
+static map<pair<string, string>, vector<string>> LLParseTable; // Will be populated by generator
 
 static set<string> LLTerminals = {"{", "}", "if", "(", ")", "then", "else", "while",
     "ID", "=", ">", "<", ">=", "<=", "==", "+", "-",
@@ -521,6 +471,33 @@ struct LLParseResult {
     bool syntaxError = false;
 };
 
+struct ASTNode {
+    string name;
+    vector<ASTNode> children;
+};
+
+string astToJson(const ASTNode& node) {
+    stringstream ss;
+    ss << "{";
+    string escaped;
+    for (char c : node.name) {
+        if (c == '"') escaped += "\\\"";
+        else if (c == '\\') escaped += "\\\\";
+        else escaped += c;
+    }
+    ss << "\"name\":\"" << escaped << "\"";
+    if (!node.children.empty()) {
+        ss << ",\"children\":[";
+        for (size_t i = 0; i < node.children.size(); ++i) {
+            ss << astToJson(node.children[i]);
+            if (i < node.children.size() - 1) ss << ",";
+        }
+        ss << "]";
+    }
+    ss << "}";
+    return ss.str();
+}
+
 class LLParser {
     vector<LLToken> tokens;
     size_t p = 0;
@@ -530,8 +507,26 @@ public:
     bool hasError = false;
     int lastConsumedLine = 0;
     string tree;
+    ASTNode root;
 
     LLParser(const vector<LLToken>& t) : tokens(t) {}
+
+    string get_token_type(const string& token) {
+        static const set<string> literals = {
+            "{", "}", "if", "(", ")", "then", "else", "while",
+            "=", ">", "<", ">=", "<=", "==", "+", "-",
+            "*", "/", ";", "$"
+        };
+        if (literals.count(token)) return token;
+        
+        bool isNum = true;
+        for (char c : token) {
+            if (!isdigit(c) && c != '.') { isNum = false; break; }
+        }
+        if (isNum && !token.empty()) return "NUM";
+        
+        return "ID";
+    }
 
     LLToken peek() const { return p < tokens.size() ? tokens[p] : LLToken("$", 0); }
     void consume() { if (p < tokens.size()) { lastConsumedLine = tokens[p].line; ++p; } }
@@ -542,12 +537,18 @@ public:
         tree += "\n";
     }
 
-    bool parse(const string& symbol, int depth, bool output) {
-        if (symbol == "E") { if (output) append(depth, "E"); return true; }
+    bool parse(const string& symbol, int depth, bool output, ASTNode* currentNode = nullptr) {
+        if (currentNode) currentNode->name = symbol;
+
+        if (symbol == "E") { 
+            if (output) append(depth, "E"); 
+            return true; 
+        }
         if (LLTerminals.count(symbol)) {
             if (output) append(depth, symbol);
             LLToken cur = peek();
-            if (cur.value == symbol) { consume(); return true; }
+            string curType = get_token_type(cur.value);
+            if (cur.value == symbol || curType == symbol) { consume(); return true; }
             if (symbol == ";") {
                 if (!semicolonMissing) {
                     semicolonMissing = true;
@@ -560,14 +561,18 @@ public:
         }
         if (output) append(depth, symbol);
         string cur = peek().value;
-        auto key = make_pair(symbol, cur);
+        string curType = get_token_type(cur);
+        auto key = make_pair(symbol, curType);
         if (LLParseTable.count(key) == 0) {
             if ((symbol == "stmts" && cur == "}") ||
                 (symbol == "arithexprprime" && (cur == ")" || cur == ";" || cur == "$" ||
                     cur == "<" || cur == ">" || cur == "<=" || cur == ">=" || cur == "==" || cur == "}")) ||
                 (symbol == "multexprprime" && (cur == "+" || cur == "-" || cur == ")" ||
                     cur == ";" || cur == "$" || cur == "<" || cur == ">" || cur == "<=" || cur == ">=" || cur == "==" || cur == "}"))) {
-                return parse("E", depth + 1, output);
+                ASTNode child;
+                bool res = parse("E", depth + 1, output, output ? &child : nullptr);
+                if (output && currentNode) currentNode->children.push_back(child);
+                return res;
             }
             if (semicolonMissing) return false;
             hasError = true;
@@ -575,12 +580,14 @@ public:
         }
         const vector<string>& prod = LLParseTable[key];
         for (const string& s : prod) {
-            if (!parse(s, depth + 1, output)) return false;
+            ASTNode child;
+            if (!parse(s, depth + 1, output, output ? &child : nullptr)) return false;
+            if (output && currentNode) currentNode->children.push_back(child);
         }
         return true;
     }
 
-    void reset() { p = 0; semicolonMissing = false; missingLine = 0; hasError = false; lastConsumedLine = 0; tree.clear(); }
+    void reset() { p = 0; semicolonMissing = false; missingLine = 0; hasError = false; lastConsumedLine = 0; tree.clear(); root = ASTNode(); }
 };
 
 
@@ -609,7 +616,82 @@ struct Identifier {
     Identifier(string n = "", bool real = false, double v = 0) : name(n), isReal(real), value(v) {}
 };
 
-map<string, Identifier> IDMap;
+class SymbolTable {
+public:
+    struct Node {
+        string key;
+        Identifier value;
+        Node* next;
+        Node(string k, Identifier v) : key(k), value(v), next(nullptr) {}
+    };
+
+    static const int TABLE_SIZE = 1009; // Prime number for better distribution
+    Node* buckets[TABLE_SIZE];
+
+    SymbolTable() {
+        for (int i = 0; i < TABLE_SIZE; ++i) buckets[i] = nullptr;
+    }
+
+    // BKDR Hash Function
+    unsigned int hash(const string& str) {
+        unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
+        unsigned int hash = 0;
+        for (char c : str) {
+            hash = hash * seed + c;
+        }
+        return (hash & 0x7FFFFFFF) % TABLE_SIZE;
+    }
+
+    Identifier& operator[](const string& key) {
+        unsigned int h = hash(key);
+        Node* p = buckets[h];
+        while (p) {
+            if (p->key == key) return p->value;
+            p = p->next;
+        }
+        // Insert new
+        Node* newNode = new Node(key, Identifier(key));
+        newNode->next = buckets[h];
+        buckets[h] = newNode;
+        return newNode->value;
+    }
+
+    bool contains(const string& key) {
+        unsigned int h = hash(key);
+        Node* p = buckets[h];
+        while (p) {
+            if (p->key == key) return true;
+            p = p->next;
+        }
+        return false;
+    }
+
+    void clear() {
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            Node* p = buckets[i];
+            while (p) {
+                Node* temp = p;
+                p = p->next;
+                delete temp;
+            }
+            buckets[i] = nullptr;
+        }
+    }
+
+    vector<string> getKeys() {
+        vector<string> keys;
+        for (int i = 0; i < TABLE_SIZE; ++i) {
+            Node* p = buckets[i];
+            while (p) {
+                keys.push_back(p->key);
+                p = p->next;
+            }
+        }
+        return keys;
+    }
+};
+
+SymbolTable IDMap;
 
 void conversionError(int lineNum) {
     printf("error message:line %d,realnum can not be translated into int type\n", lineNum);
@@ -668,7 +750,7 @@ class Translator {
     }
     
     Identifier* getOrCreateId(string name, bool isReal = false) {
-        if (IDMap.find(name) == IDMap.end()) {
+        if (!IDMap.contains(name)) {
             IDMap[name] = Identifier(name, isReal, 0);
         }
         return &IDMap[name];
@@ -774,16 +856,20 @@ class Translator {
     }
     
     void printResult() {
-    for (auto& p : IDMap) {
-        if (p.first != "temp") {
-            if (p.second.isReal) {
-                printf("%s: %g\n", p.first.c_str(), p.second.value);
-            } else {
-                printf("%s: %d\n", p.first.c_str(), (int)p.second.value);
+        vector<string> keys = IDMap.getKeys();
+        sort(keys.begin(), keys.end());
+
+        for (const auto& key : keys) {
+            auto& val = IDMap[key];
+            if (key != "temp") {
+                if (val.isReal) {
+                    printf("%s: %g\n", key.c_str(), val.value);
+                } else {
+                    printf("%s: %d\n", key.c_str(), (int)val.value);
+                }
             }
         }
     }
-}
 
 public:
     Translator(string& prog) {
@@ -828,7 +914,7 @@ string llParseToJSON(const string& code) {
     bool miss = parser.semicolonMissing;
     int line = parser.missingLine;
     parser.reset();
-    parser.parse("program", 0, true);
+    parser.parse("program", 0, true, &parser.root);
     string t = parser.tree;
     stringstream json;
     // Build JSON safely (escape tree text)
@@ -848,7 +934,8 @@ string llParseToJSON(const string& code) {
     json << "{\"tree\":\"" << escaped << "\",";
     json << "\"missingSemicolon\":" << (miss ? "true" : "false") << ",";
     json << "\"missingLine\":" << line << ",";
-    json << "\"syntaxError\":" << (parser.hasError ? "true" : "false") << "}";
+    json << "\"syntaxError\":" << (parser.hasError ? "true" : "false") << ",";
+    json << "\"ast\":" << astToJson(parser.root) << "}";
     return json.str();
 }
 
@@ -1048,11 +1135,49 @@ void startServer() {
             continue;
         }
         
-        char buffer[4096] = {0};
+        char buffer[8192] = {0};
         int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
         
         if (bytes_read > 0) {
             string request(buffer);
+
+            // 检查是否有Content-Length，如果有，确保读完body
+            size_t header_end = request.find("\r\n\r\n");
+            if (header_end != string::npos) {
+                size_t cl_pos = request.find("Content-Length: ");
+                if (cl_pos != string::npos) {
+                    size_t cl_end = request.find("\r\n", cl_pos);
+                    if (cl_end != string::npos) {
+                        string cl_str = request.substr(cl_pos + 16, cl_end - (cl_pos + 16));
+                        int content_length = atoi(cl_str.c_str());
+                        int body_received = request.length() - (header_end + 4);
+                        
+                        while (body_received < content_length) {
+                            int n = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+                            if (n <= 0) break;
+                            buffer[n] = 0;
+                            request += buffer;
+                            body_received += n;
+                        }
+                    }
+                }
+            }
+
+            // 处理CORS预检请求
+            if (request.find("OPTIONS") == 0) {
+                string response = "HTTP/1.1 200 OK\r\n";
+                response += "Access-Control-Allow-Origin: *\r\n";
+                response += "Access-Control-Allow-Methods: POST, GET, OPTIONS\r\n";
+                response += "Access-Control-Allow-Headers: Content-Type\r\n";
+                response += "Content-Length: 0\r\n\r\n";
+                send(client_fd, response.c_str(), response.length(), 0);
+#ifdef _WIN32
+                closesocket(client_fd);
+#else
+                close(client_fd);
+#endif
+                continue;
+            }
             
             // 解析请求路径
             string path = "/home.html"; // 默认路径
@@ -1073,10 +1198,14 @@ void startServer() {
                     string json_str = request.substr(json_start + 4);
                     
                     // 查找并解析 code 字段
-                    size_t code_start = json_str.find("\"code\":\"");
-                    if (code_start != string::npos) {
-                        code_start += 8; // 跳过"code":"
-                        size_t code_end = code_start;
+                    size_t code_key_pos = json_str.find("\"code\"");
+                    if (code_key_pos != string::npos) {
+                        size_t colon_pos = json_str.find(":", code_key_pos);
+                        if (colon_pos != string::npos) {
+                            size_t code_start = json_str.find("\"", colon_pos + 1);
+                            if (code_start != string::npos) {
+                                code_start += 1; // 跳过开始的"
+                                size_t code_end = code_start;
                         bool escaped = false;
                         while (code_end < json_str.size()) {
                             char ch = json_str[code_end];
@@ -1109,6 +1238,8 @@ void startServer() {
                         response += "\r\n";
                         response += result;
                         send(client_fd, response.c_str(), response.length(), 0);
+                            }
+                        }
                     } else {
                         string response = "HTTP/1.1 400 Bad Request\r\n";
                         response += "Content-Type: text/plain; charset=utf-8\r\n";
@@ -1121,10 +1252,14 @@ void startServer() {
                 size_t json_start = request.find("\r\n\r\n");
                 if (json_start != string::npos) {
                     string json_str = request.substr(json_start + 4);
-                    size_t code_start = json_str.find("\"code\":\"");
-                    if (code_start != string::npos) {
-                        code_start += 8;
-                        size_t code_end = code_start; bool escaped = false;
+                    size_t code_key_pos = json_str.find("\"code\"");
+                    if (code_key_pos != string::npos) {
+                        size_t colon_pos = json_str.find(":", code_key_pos);
+                        if (colon_pos != string::npos) {
+                            size_t code_start = json_str.find("\"", colon_pos + 1);
+                            if (code_start != string::npos) {
+                                code_start += 1;
+                                size_t code_end = code_start; bool escaped = false;
                         while (code_end < json_str.size()) {
                             char ch = json_str[code_end];
                             if (escaped) { escaped = false; }
@@ -1153,6 +1288,8 @@ void startServer() {
                         response += "Content-Length: " + to_string(result.length()) + "\r\n\r\n";
                         response += result;
                         send(client_fd, response.c_str(), response.length(), 0);
+                            }
+                        }
                     } else {
                         string response = "HTTP/1.1 400 Bad Request\r\n";
                         response += "Content-Type: text/plain; charset=utf-8\r\n";
@@ -1165,10 +1302,14 @@ void startServer() {
                 size_t json_start = request.find("\r\n\r\n");
                 if (json_start != string::npos) {
                     string json_str = request.substr(json_start + 4);
-                    size_t code_start = json_str.find("\"code\":\"");
-                    if (code_start != string::npos) {
-                        code_start += 8;
-                        size_t code_end = code_start; bool escaped = false;
+                    size_t code_key_pos = json_str.find("\"code\"");
+                    if (code_key_pos != string::npos) {
+                        size_t colon_pos = json_str.find(":", code_key_pos);
+                        if (colon_pos != string::npos) {
+                            size_t code_start = json_str.find("\"", colon_pos + 1);
+                            if (code_start != string::npos) {
+                                code_start += 1;
+                                size_t code_end = code_start; bool escaped = false;
                         while (code_end < json_str.size()) {
                             char ch = json_str[code_end];
                             if (escaped) { escaped = false; }
@@ -1197,6 +1338,8 @@ void startServer() {
                         response += "Content-Length: " + to_string(result.length()) + "\r\n\r\n";
                         response += result;
                         send(client_fd, response.c_str(), response.length(), 0);
+                            }
+                        }
                     } else {
                         string response = "HTTP/1.1 400 Bad Request\r\n";
                         response += "Content-Type: text/plain; charset=utf-8\r\n";
@@ -1209,10 +1352,14 @@ void startServer() {
                 size_t json_start = request.find("\r\n\r\n");
                 if (json_start != string::npos) {
                     string json_str = request.substr(json_start + 4);
-                    size_t code_start = json_str.find("\"code\":\"");
-                    if (code_start != string::npos) {
-                        code_start += 8;
-                        size_t code_end = code_start; bool escaped = false;
+                    size_t code_key_pos = json_str.find("\"code\"");
+                    if (code_key_pos != string::npos) {
+                        size_t colon_pos = json_str.find(":", code_key_pos);
+                        if (colon_pos != string::npos) {
+                            size_t code_start = json_str.find("\"", colon_pos + 1);
+                            if (code_start != string::npos) {
+                                code_start += 1;
+                                size_t code_end = code_start; bool escaped = false;
                         while (code_end < json_str.size()) {
                             char ch = json_str[code_end];
                             if (escaped) { escaped = false; }
@@ -1241,6 +1388,8 @@ void startServer() {
                         response += "Content-Length: " + to_string(result.length()) + "\r\n\r\n";
                         response += result;
                         send(client_fd, response.c_str(), response.length(), 0);
+                            }
+                        }
                     } else {
                         string response = "HTTP/1.1 400 Bad Request\r\n";
                         response += "Content-Type: text/plain; charset=utf-8\r\n";
@@ -1286,6 +1435,14 @@ void startServer() {
 }
 
 int main() {
+    // Generate LL(1) Table
+    cout << "Generating LL(1) Table..." << endl;
+    generateLLTableData(LLGrammar, LLTerminals, LLParseTable);
+    
+    // Generate LR Table
+    cout << "Generating LR Table..." << endl;
+    generateLRTableData(grammar_rules, action_table, goto_table, reduction_rules);
+    
     startServer();
     return 0;
 }

@@ -67,7 +67,7 @@ ID = NUM
                 loading.textContent = '分析中...';
                 loading.classList.remove('hidden');
                 analyzeBtn.disabled = true;
-                const resp = await fetch('/lrparse', {
+                const resp = await fetch('http://localhost:8080/lrparse', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code })

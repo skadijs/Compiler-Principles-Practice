@@ -154,6 +154,23 @@ class Parser {
 public:
     Parser(const vector<Token>& t) : tokens(t) {}
 
+    string get_token_type(const string& token) {
+        static const set<string> literals = {
+            "{", "}", "if", "(", ")", "then", "else", "while",
+            "=", ">", "<", ">=", "<=", "==", "+", "-",
+            "*", "/", ";", "$"
+        };
+        if (literals.count(token)) return token;
+        
+        bool isNum = true;
+        for (char c : token) {
+            if (!isdigit(c) && c != '.') { isNum = false; break; }
+        }
+        if (isNum && !token.empty()) return "NUM";
+        
+        return "ID";
+    }
+
     Token peek() const {
         return pos < tokens.size() ? tokens[pos] : Token("$",0);
     }
@@ -185,7 +202,8 @@ public:
             }
 
             Token cur = peek();
-            if (cur.value == symbol) {
+            string curType = get_token_type(cur.value);
+            if (cur.value == symbol || curType == symbol) {
                 consume();
                 return true;
             }
@@ -216,7 +234,8 @@ public:
         }
 
         string cur = peek().value;
-        auto key = make_pair(symbol, cur);
+        string curType = get_token_type(cur);
+        auto key = make_pair(symbol, curType);
 
         if (parseTable.count(key) == 0) {
             // ε产生式
